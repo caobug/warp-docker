@@ -1,15 +1,36 @@
-version: '3'
+version: '3.4'
 
 services:
+  autoheal:
+      image: willfarrell/autoheal
+      environment:
+        - AUTOHEAL_INTERVAL=1
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+      restart: unless-stopped
+
   warp:
+    hostname: example
     image: caomingjun/warp
     container_name: warp
-    restart: always
+    restart: unless-stopped
     ports:
       - '1080:1080'
     environment:
       - WARP_SLEEP=2
       # - WARP_LICENSE_KEY= # optional
+      # - WARP_ORGANIZATION= # optional
+      # - WARP_AUTH_CLIENT_ID= # optional
+      # - WARP_AUTH_CLIENT_SECRET= # optional
+      # - GOST_ARGS=-L=socks5://:1080
+    healthcheck:
+      test: curl -fsS "https://cloudflare.com/cdn-cgi/trace" | grep -qE "warp=(plus|on)$" || exit 1
+      interval: 15s
+      retries: 3
+      start_period: 30s
+      timeout: 10s
+    labels:
+      - autoheal=true
     cap_add:
       - NET_ADMIN
     sysctls:
